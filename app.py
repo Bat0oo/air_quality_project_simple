@@ -172,9 +172,112 @@ monthly_chart = generate_monthly_patterns()
 distribution_chart = generate_parameter_distribution()
 print("Visualizations ready!")
 
+# AQI Calculation Functions
+def calculate_aqi_for_pollutant(pollutant, concentration):
+    """Calculate AQI for a specific pollutant using EPA breakpoints"""
+    
+    # AQI Breakpoints: [C_low, C_high, AQI_low, AQI_high]
+    breakpoints = {
+        'pm25': [
+            [0.0, 12.0, 0, 50],
+            [12.1, 35.4, 51, 100],
+            [35.5, 55.4, 101, 150],
+            [55.5, 150.4, 151, 200],
+            [150.5, 250.4, 201, 300],
+            [250.5, 500.4, 301, 500]
+        ],
+        'pm10': [
+            [0, 54, 0, 50],
+            [55, 154, 51, 100],
+            [155, 254, 101, 150],
+            [255, 354, 151, 200],
+            [355, 424, 201, 300],
+            [425, 604, 301, 500]
+        ],
+        'o3': [  # 8-hour average (using simplified version)
+            [0, 54, 0, 50],
+            [55, 70, 51, 100],
+            [71, 85, 101, 150],
+            [86, 105, 151, 200],
+            [106, 200, 201, 300]
+        ],
+        'co': [  # 8-hour average in mg/m³, converting from µg/m³
+            [0, 4400, 0, 50],
+            [4500, 9400, 51, 100],
+            [9500, 12400, 101, 150],
+            [12500, 15400, 151, 200],
+            [15500, 30400, 201, 300],
+            [30500, 50400, 301, 500]
+        ],
+        'no2': [  # 1-hour average
+            [0, 53, 0, 50],
+            [54, 100, 51, 100],
+            [101, 360, 101, 150],
+            [361, 649, 151, 200],
+            [650, 1249, 201, 300],
+            [1250, 2049, 301, 500]
+        ],
+        'so2': [  # 1-hour average
+            [0, 35, 0, 50],
+            [36, 75, 51, 100],
+            [76, 185, 101, 150],
+            [186, 304, 151, 200],
+            [305, 604, 201, 300],
+            [605, 1004, 301, 500]
+        ]
+    }
+    
+    if pollutant not in breakpoints:
+        return None
+    
+    # Find the appropriate breakpoint
+    for bp in breakpoints[pollutant]:
+        c_low, c_high, aqi_low, aqi_high = bp
+        if c_low <= concentration <= c_high:
+            # Linear interpolation formula
+            aqi = ((aqi_high - aqi_low) / (c_high - c_low)) * (concentration - c_low) + aqi_low
+            return round(aqi)
+    
+    # If concentration exceeds all breakpoints, return hazardous
+    return 500
+
+def calculate_overall_aqi(pollutant_values):
+    """Calculate overall AQI (the maximum of all individual pollutant AQIs)"""
+    aqi_values = {}
+    
+    for pollutant, concentration in pollutant_values.items():
+        aqi = calculate_aqi_for_pollutant(pollutant, concentration)
+        if aqi is not None:
+            aqi_values[pollutant] = aqi
+    
+    if not aqi_values:
+        return None, None, None
+    
+    # Overall AQI is the maximum of individual AQIs
+    max_pollutant = max(aqi_values, key=aqi_values.get)
+    overall_aqi = aqi_values[max_pollutant]
+    
+    return overall_aqi, max_pollutant, aqi_values
+
+def get_aqi_category(aqi):
+    """Get AQI category and color"""
+    if aqi <= 50:
+        return "Good", "#00e400", "Air quality is satisfactory, and air pollution poses little or no risk."
+    elif aqi <= 100:
+        return "Moderate", "#ffff00", "Air quality is acceptable. However, there may be a risk for some people, particularly those who are unusually sensitive to air pollution."
+    elif aqi <= 150:
+        return "Unhealthy for Sensitive Groups", "#ff7e00", "Members of sensitive groups may experience health effects. The general public is less likely to be affected."
+    elif aqi <= 200:
+        return "Unhealthy", "#ff0000", "Some members of the general public may experience health effects; members of sensitive groups may experience more serious health effects."
+    elif aqi <= 300:
+        return "Very Unhealthy", "#8f3f97", "Health alert: The risk of health effects is increased for everyone."
+    else:
+        return "Hazardous", "#7e0023", "Health warning of emergency conditions: everyone is more likely to be affected."
+
 @app.route('/', methods=['GET', 'POST'])
 def predict():
     results = None
+    aqi_info = None
     
     if request.method == 'POST':
         try:
@@ -186,6 +289,7 @@ def predict():
             day_of_week = int(request.form['day_of_week'])
             
             results = {}
+            pollutant_concentrations = {}
             
             # Predict for each parameter
             for param, model_info in models.items():
@@ -214,13 +318,29 @@ def predict():
                 # Make prediction
                 prediction = model_info['model'].predict(input_data)[0]
                 results[param] = f'{prediction:.2f}'
+                pollutant_concentrations[param] = prediction
+            
+            # Calculate AQI
+            overall_aqi, main_pollutant, individual_aqis = calculate_overall_aqi(pollutant_concentrations)
+            
+            if overall_aqi is not None:
+                category, color, description = get_aqi_category(overall_aqi)
+                aqi_info = {
+                    'aqi': overall_aqi,
+                    'category': category,
+                    'color': color,
+                    'description': description,
+                    'main_pollutant': main_pollutant.upper(),
+                    'individual_aqis': individual_aqis
+                }
                 
         except Exception as e:
             results = {'Error': str(e)}
     
     return render_template(
         'index.html', 
-        results=results, 
+        results=results,
+        aqi_info=aqi_info,
         cities=cities,
         city_chart=city_chart,
         hourly_chart=hourly_chart,

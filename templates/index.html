@@ -47,9 +47,25 @@
             <button type="submit" class="btn btn-primary btn-block btn-lg">Predict All Parameters</button>
           </form>
           
+          {% if aqi_info %}
+            <div class="mt-4">
+              <div class="card text-center" style="border: 3px solid {{ aqi_info.color }}; background: linear-gradient(135deg, {{ aqi_info.color }}22, white);">
+                <div class="card-body">
+                  <h2 class="mb-3">Overall Air Quality Index (AQI)</h2>
+                  <div style="display: inline-block; background-color: {{ aqi_info.color }}; color: white; padding: 20px 40px; border-radius: 15px; margin-bottom: 15px;">
+                    <h1 style="font-size: 4rem; margin: 0; font-weight: bold;">{{ aqi_info.aqi }}</h1>
+                  </div>
+                  <h3 style="color: {{ aqi_info.color }}; font-weight: bold;">{{ aqi_info.category }}</h3>
+                  <p class="lead">{{ aqi_info.description }}</p>
+                  <p class="mb-0"><strong>Main Pollutant:</strong> {{ aqi_info.main_pollutant }}</p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          
           {% if results %}
             <div class="mt-4">
-              <h3 class="text-center mb-4">Predicted Air Quality Values</h3>
+              <h3 class="text-center mb-4">Predicted Pollutant Concentrations</h3>
               <div class="row">
                 {% for param, value in results.items() %}
                 <div class="col-md-4 mb-3">
@@ -57,6 +73,9 @@
                     <div class="card-body">
                       <h5 class="card-title">{{ param.upper() }}</h5>
                       <h2 class="text-primary">{{ value }} µg/m³</h2>
+                      {% if aqi_info and param in aqi_info.individual_aqis %}
+                        <small class="text-muted">AQI: {{ aqi_info.individual_aqis[param] }}</small>
+                      {% endif %}
                     </div>
                   </div>
                 </div>
