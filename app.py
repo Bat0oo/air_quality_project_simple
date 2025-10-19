@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from datetime import datetime
 
-# Load and prepare data
+# ETL Pipeline simulation
 try:
     # Load all three CSV files from dataset folder
     beograd_data = pd.read_csv('dataset/beograd.csv')
@@ -194,14 +194,14 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [355, 424, 201, 300],
             [425, 604, 301, 500]
         ],
-        'o3': [  # 8-hour average (using simplified version)
+        'o3': [  
             [0, 54, 0, 50],
             [55, 70, 51, 100],
             [71, 85, 101, 150],
             [86, 105, 151, 200],
             [106, 200, 201, 300]
         ],
-        'co': [  # 8-hour average in mg/m³, converting from µg/m³
+        'co': [ 
             [0, 4400, 0, 50],
             [4500, 9400, 51, 100],
             [9500, 12400, 101, 150],
@@ -209,7 +209,7 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [15500, 30400, 201, 300],
             [30500, 50400, 301, 500]
         ],
-        'no2': [  # 1-hour average
+        'no2': [  
             [0, 53, 0, 50],
             [54, 100, 51, 100],
             [101, 360, 101, 150],
@@ -217,7 +217,7 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [650, 1249, 201, 300],
             [1250, 2049, 301, 500]
         ],
-        'so2': [  # 1-hour average
+        'so2': [  
             [0, 35, 0, 50],
             [36, 75, 51, 100],
             [76, 185, 101, 150],
