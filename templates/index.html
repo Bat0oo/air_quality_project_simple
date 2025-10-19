@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Prediction</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="bg-light">
+    <div class="container mt-5">
+      <div class="card">
+        <div class="card-header text-center bg-primary text-white">
+          <h1>Air Quality Prediction System</h1>
+          <p>Predict SO2, PM2.5, PM10, O3, NO2, and CO levels</p>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="/">
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="city">City:</label>
+                <select class="form-control" id="city" name="city" required>
+                  <option value="">Select City</option>
+                  {% for city in cities %}
+                  <option value="{{ city }}">{{ city }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="form-group col-md-6">
+                <label for="hour">Hour (0-23):</label>
+                <input type="number" class="form-control" id="hour" name="hour" min="0" max="23" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label for="day">Day of Month (1-31):</label>
+                <input type="number" class="form-control" id="day" name="day" min="1" max="31" required>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="month">Month (1-12):</label>
+                <input type="number" class="form-control" id="month" name="month" min="1" max="12" required>
+              </div>
+              <div class="form-group col-md-4">
+                <label for="day_of_week">Day of Week (0=Mon, 6=Sun):</label>
+                <input type="number" class="form-control" id="day_of_week" name="day_of_week" min="0" max="6" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-lg">Predict All Parameters</button>
+          </form>
+          
+          {% if results %}
+            <div class="mt-4">
+              <h3 class="text-center mb-4">Predicted Air Quality Values</h3>
+              <div class="row">
+                {% for param, value in results.items() %}
+                <div class="col-md-4 mb-3">
+                  <div class="card text-center">
+                    <div class="card-body">
+                      <h5 class="card-title">{{ param.upper() }}</h5>
+                      <h2 class="text-primary">{{ value }} µg/m³</h2>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card mt-5">
+        <div class="card-header text-center">
+          <h2>Average Air Quality by City</h2>
+        </div>
+        <div class="card-body">
+          {{ city_chart | safe }}
+        </div>
+      </div>
+
+      <div class="card mt-5">
+        <div class="card-header text-center">
+          <h2>Hourly Patterns</h2>
+        </div>
+        <div class="card-body">
+          {{ hourly_chart | safe }}
+        </div>
+      </div>
+
+      <div class="card mt-5">
+        <div class="card-header text-center">
+          <h2>Daily Patterns (Day of Week)</h2>
+        </div>
+        <div class="card-body">
+          {{ daily_chart | safe }}
+        </div>
+      </div>
+
+      <div class="card mt-5">
+        <div class="card-header text-center">
+          <h2>Monthly Patterns</h2>
+        </div>
+        <div class="card-body">
+          {{ monthly_chart | safe }}
+        </div>
+      </div>
+
+      <div class="card mt-5">
+        <div class="card-header text-center">
+          <h2>Parameter Distribution</h2>
+        </div>
+        <div class="card-body">
+          {{ distribution_chart | safe }}
+        </div>
+      </div>
+
+      <div class="card mt-5 mb-5">
+        <div class="card-header text-center">
+          <h2>Model Performance</h2>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>R² Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for param, info in model_info.items() %}
+              <tr>
+                <td>{{ param.upper() }}</td>
+                <td>{{ "%.4f"|format(info.score) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  </body>
+</html>
