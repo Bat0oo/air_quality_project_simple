@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from datetime import datetime
 
-# ETL Pipeline simulation
+# ETL Pipeline simulated
 try:
     # Load all three CSV files from dataset folder
     beograd_data = pd.read_csv('dataset/beograd.csv')
@@ -176,6 +176,20 @@ print("Visualizations ready!")
 def calculate_aqi_for_pollutant(pollutant, concentration):
     """Calculate AQI for a specific pollutant using EPA breakpoints"""
     
+    # Cap concentrations at reasonable maximums to avoid extreme AQI values
+    max_concentrations = {
+        'pm25': 500.4,
+        'pm10': 604,
+        'o3': 200,
+        'co': 50400,
+        'no2': 2049,
+        'so2': 1004
+    }
+    
+    # Cap the concentration if it exceeds maximum
+    if pollutant in max_concentrations:
+        concentration = min(concentration, max_concentrations[pollutant])
+    
     # AQI Breakpoints: [C_low, C_high, AQI_low, AQI_high]
     breakpoints = {
         'pm25': [
@@ -194,14 +208,14 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [355, 424, 201, 300],
             [425, 604, 301, 500]
         ],
-        'o3': [  
+        'o3': [  # 8-hour average (using simplified version)
             [0, 54, 0, 50],
             [55, 70, 51, 100],
             [71, 85, 101, 150],
             [86, 105, 151, 200],
             [106, 200, 201, 300]
         ],
-        'co': [ 
+        'co': [  # 8-hour average in mg/m³, converting from µg/m³
             [0, 4400, 0, 50],
             [4500, 9400, 51, 100],
             [9500, 12400, 101, 150],
@@ -209,7 +223,7 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [15500, 30400, 201, 300],
             [30500, 50400, 301, 500]
         ],
-        'no2': [  
+        'no2': [  # 1-hour average
             [0, 53, 0, 50],
             [54, 100, 51, 100],
             [101, 360, 101, 150],
@@ -217,7 +231,7 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             [650, 1249, 201, 300],
             [1250, 2049, 301, 500]
         ],
-        'so2': [  
+        'so2': [  # 1-hour average
             [0, 35, 0, 50],
             [36, 75, 51, 100],
             [76, 185, 101, 150],
@@ -230,6 +244,9 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
     if pollutant not in breakpoints:
         return None
     
+    # Ensure concentration is non-negative
+    concentration = max(0, concentration)
+    
     # Find the appropriate breakpoint
     for bp in breakpoints[pollutant]:
         c_low, c_high, aqi_low, aqi_high = bp
@@ -238,7 +255,7 @@ def calculate_aqi_for_pollutant(pollutant, concentration):
             aqi = ((aqi_high - aqi_low) / (c_high - c_low)) * (concentration - c_low) + aqi_low
             return round(aqi)
     
-    # If concentration exceeds all breakpoints, return hazardous
+    # If concentration exceeds all breakpoints, return maximum AQI for that range
     return 500
 
 def calculate_overall_aqi(pollutant_values):
@@ -270,9 +287,9 @@ def get_aqi_category(aqi):
     elif aqi <= 200:
         return "Unhealthy", "#ff0000", "Some members of the general public may experience health effects; members of sensitive groups may experience more serious health effects."
     elif aqi <= 300:
-        return "Very Unhealthy", "#8f3f97", "Health alert: The risk of health effects is increased for everyone."
+        return "Very Unhealthy", "#8f3f97", "Health alert: The risk of health effects is increased for everyone. Avoid prolonged outdoor activities."
     else:
-        return "Hazardous", "#7e0023", "Health warning of emergency conditions: everyone is more likely to be affected."
+        return "Hazardous", "#7e0023", "Health warning of emergency conditions: Everyone should avoid all outdoor physical activities. Stay indoors with air filtration."
 
 @app.route('/', methods=['GET', 'POST'])
 def predict():
